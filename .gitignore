@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Downloads (crawled data)
+downloads/
+
+# Progress files (auto-generated, resumable)
+progress*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
