@@ -51,6 +51,55 @@ node crawler-provinsi.js
 
 Hanya mengunduh data level nasional dan masing-masing provinsi. Lebih cepat (~40 file Excel).
 
+### ⚡ Crawl Parallel (10 Browser Sekaligus)
+
+```bash
+# Default: 10 browser parallel
+npm run crawl:parallel
+
+# Custom jumlah worker
+npm run crawl:parallel:5     # 5 browser
+npm run crawl:parallel:10    # 10 browser
+node crawler-parallel.js --workers=15  # 15 browser
+```
+
+Menjalankan **beberapa browser sekaligus** menggunakan `worker_threads` sehingga proses crawling jauh lebih cepat.
+
+#### 🏗️ Arsitektur Parallel Crawler
+
+```
+Main Thread
+  │
+  ├── Buka 1 browser → crawl /pd → temukan semua provinsi
+  ├── Filter provinsi yang sudah selesai
+  ├── Bagi provinsi ke N worker (round-robin)
+  │
+  ├── Worker 1 (browser sendiri) → Prov. A, B, C → rekursif ke kab/kec
+  ├── Worker 2 (browser sendiri) → Prov. D, E, F → ...
+  ├── Worker 3 (browser sendiri) → Prov. G, H, I → ...
+  │   ...
+  └── Worker N (browser sendiri) → Prov. X, Y, Z → ...
+```
+
+#### Cara Kerja:
+
+1. **Main thread** membuka 1 browser untuk crawl halaman nasional dan menemukan semua provinsi
+2. Provinsi yang belum selesai dibagi rata ke **N worker threads**
+3. Setiap **worker thread** meluncurkan browser Playwright-nya sendiri (headed mode)
+4. Setiap worker crawl secara **rekursif** (provinsi → kabupaten → kecamatan) untuk provinsi yang ditugaskan
+5. Worker mengirim pesan `completed` ke main thread untuk **menyimpan progres** (thread-safe, tidak ada race condition pada file)
+6. Main thread menunggu semua worker selesai
+
+#### ⚠️ Kebutuhan Sistem:
+
+| Workers | Estimasi RAM | Catatan |
+|---------|-------------|--------|
+| 5 | ~2.5 GB | Aman untuk kebanyakan laptop |
+| 10 | ~5 GB | Disarankan RAM ≥ 8 GB |
+| 15+ | ~7.5 GB+ | Disarankan RAM ≥ 16 GB |
+
+Setiap browser instance menggunakan ~500 MB RAM. Sesuaikan `--workers` dengan kapasitas mesin Anda.
+
 ## 📁 Struktur Hasil Download
 
 ```
@@ -85,6 +134,7 @@ Crawler menyimpan progres secara otomatis:
 |---------|-------------|
 | `crawler-nasional.js` | `progress.json` |
 | `crawler-provinsi.js` | `progress-provinsi.json` |
+| `crawler-parallel.js` | `progress-parallel.json` |
 
 Jika proses terhenti (error, koneksi putus, dll), **cukup jalankan ulang perintah yang sama**. Crawler akan melewati data yang sudah selesai diunduh dan melanjutkan dari posisi terakhir.
 
@@ -95,6 +145,9 @@ del progress.json
 
 # Reset crawl provinsi
 del progress-provinsi.json
+
+# Reset crawl parallel
+del progress-parallel.json
 ```
 
 ## ⚙️ Konfigurasi
@@ -123,8 +176,9 @@ Website DAPO dilindungi oleh **SafeLine WAF** yang menampilkan layar "Dynamic De
 
 | File | Keterangan |
 |------|------------|
-| `crawler-nasional.js` | Crawler seluruh level (nasional → kecamatan) |
-| `crawler-provinsi.js` | Crawler provinsi saja |
+| `crawler-nasional.js` | Crawler seluruh level — sequential (nasional → kecamatan) |
+| `crawler-provinsi.js` | Crawler provinsi saja — sequential |
+| `crawler-parallel.js` | Crawler parallel — 10 browser sekaligus via `worker_threads` |
 | `list_provinces.js` | Script utilitas untuk melihat daftar provinsi |
 | `test_download.js` | Script tes download Excel |
 | `todo.md` | Catatan tugas dan pola URL |

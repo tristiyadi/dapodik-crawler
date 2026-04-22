@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "crawl:nasional": "node crawler-nasional.js",
-    "crawl:provinsi": "node crawler-provinsi.js"
+    "crawl:provinsi": "node crawler-provinsi.js",
+    "crawl:parallel": "node crawler-parallel.js",
+    "crawl:parallel:5": "node crawler-parallel.js --workers=5",
+    "crawl:parallel:10": "node crawler-parallel.js --workers=10"
   },
   "keywords": [],
   "author": "",
