@@ -1,9 +1,6 @@
 # Dependencies
 node_modules/
 
-# Downloads (crawled data)
-downloads/
-
 # Progress files (auto-generated, resumable)
 progress*.json
 
